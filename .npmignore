@@ -1,0 +1,7 @@
+/src
+/node_modules
+/__tests__
+/coverage
+
+tsconfig.json
+tsup.config.ts
