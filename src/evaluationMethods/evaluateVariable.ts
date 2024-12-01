@@ -3,17 +3,17 @@ import { EvaluationErrors } from '../types';
 
 export function evaluateVariable(
   this: any,
-  variable: Variable
+  variable: Variable,
 ): NumberLiteral | EvaluationErrors {
-  console.log(`variable.name: ${variable.name}`);
-  let variableValue = 0;
-  if (variable.name === 'X') {
-    variableValue = 500;
-  } else if (variable.name === 'Y') {
-    variableValue = 500;
-  } else {
-    variableValue = 99;
+
+  
+  if (!this.variables || !(variable.name in this.variables)) {
+    throw new EvaluationErrors(`Variable ${variable.name} is not defined.`);
   }
+
+
+  let variableValue = this.variables[variable.name];
+
   return {
     type: 'NumberLiteral',
     value: variableValue,

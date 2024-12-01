@@ -5,16 +5,20 @@ import { Calculator } from "./Calculator";
 import { EvaluationErrors, Token } from "./types";
 import { Sections } from "./types";
 
-export const processLindiv = (input: string, totalLength: number, dividerThickness?: number): number[] | EvaluationErrors => {
+const scanner = new Scanner();
+const parser = new Parser();
+const evaluator = new Evaluator();
+
+
+export const processLindiv = (input: string, totalLength: number, dividerThickness?: number, variables?: {[key: string]: number}): number[] | EvaluationErrors => {
     try {
-        const scanner = new Scanner(input);
-        const tokens: Token[] = scanner.scan();
 
-        const parser = new Parser(tokens);
-        const ast = parser.parse();
 
-        const evaluator = new Evaluator();
-        const evaluationResult = evaluator.evaluate(ast);  
+        const tokens: Token[] = scanner.scan(input);
+
+        const ast = parser.parse(tokens);
+        
+        const evaluationResult = evaluator.evaluate(ast, {}, variables);
 
         if (evaluationResult && !(evaluationResult instanceof EvaluationErrors)) {
             const calculator = new Calculator();

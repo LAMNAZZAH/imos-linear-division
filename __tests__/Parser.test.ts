@@ -6,11 +6,12 @@ import { output02 } from './data/parserTestInputTokens/output02';
 import { Token } from '../src/types';
 import { TokenType } from '../src/types';
 
+const parser = new Parser();
+
 describe('Parser', () => {
   // 1:2:3mm
   it('parses input correctly', () => {
-    const parser = new Parser(input01 as Token[]);
-    const ast = parser.parse();
+    const ast = parser.parse(input01 as Token[]);
 
     expect(ast).toBeInstanceOf(Object);
     expect(ast).toEqual(output01);
@@ -18,20 +19,18 @@ describe('Parser', () => {
 
   // (round(10)+tan(2+1))mm:5{15}:(n*2mm)
   it('parses input with functions / groups / mm correctly', () => {
-    const parser = new Parser(input02 as Token[]);
-    const ast = parser.parse();
+    const ast = parser.parse(input02 as Token[]);
 
     expect(ast).toBeInstanceOf(Object);
     expect(ast).toEqual(output02);
   });
 
   it('throws error for empty input', () => {
-    const parser = new Parser([]);
-    expect(() => parser.parse()).toThrow();
+    expect(() => parser.parse([])).toThrow();
   });
 
   it('throw error for empty ()', () => {
-    const parser = new Parser([
+    expect(() => parser.parse([
       {
         type: TokenType.ANGLE_BRACKET_CLOSE,
         lexeme: '<',
@@ -57,7 +56,6 @@ describe('Parser', () => {
         lexeme: ')',
         position: 1,
       },
-    ]);
-    expect(() => parser.parse()).toThrow();
+    ])).toThrow();
   });
 });

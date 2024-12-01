@@ -39,6 +39,7 @@ import {
   
   export class Evaluator implements INodeEvaluator {
     private nestingLevel: number = 0;
+    private variables: {[key: string]: number} = {};
   
     constructor() {
       this.evaluateBinaryExpression = evaluateBinaryExpression.bind(this);
@@ -48,10 +49,19 @@ import {
   
     public evaluate(
       node: Node,
-      context: Partial<EvaluationContext> = { isInsideGroup: false }
+      context: Partial<EvaluationContext> = { isInsideGroup: false },
+      variables?: { [key: string]: number }
     ): Node | EvaluationErrors {
       this.nestingLevel++;
       try {
+
+
+        // set variables
+        if (variables) {
+          this.variables = variables;
+        } 
+
+
         // sections
         if (this.isSections(node)) {
           return this.evaluateSections(node, context);
@@ -126,7 +136,11 @@ import {
   
         // variable
         if (this.isVariable(node)) {
-          return this.evaluateVariable(node);
+          if (!this.variables) {
+            throw new EvaluationErrors('No variables defined.');
+          } else {
+            return this.evaluateVariable(node);
+          }
         }
   
         throw new EvaluationErrors(`unsupported node type: ${node.type}`);
@@ -200,7 +214,8 @@ import {
   
     evaluateVariable: (
       this: any,
-      variable: Variable
+      variable: Variable,
+      variables?: { [key: string]: number }
     ) => NumberLiteral | EvaluationErrors;
   }
   

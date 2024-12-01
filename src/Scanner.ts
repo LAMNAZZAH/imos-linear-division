@@ -4,7 +4,9 @@ import { TokenType } from './types';
 // TODO: fix mispositioning of angle brackets
 
 export class Scanner {
-  private source: string;
+  private cache = new Map<string, Token[]>();
+
+  private source: string = '';
   private tokens: Token[] = [];
   private start: number = 0;
   private current: number = 0;
@@ -41,11 +43,37 @@ export class Scanner {
       tan: TokenType.FUNCTION,
     };
 
-  constructor(source: string) {
-    this.source = source;
+  scan(source: string): Token[] {
+    if (this.cache.has(source)) {
+      const tokens: Token[] = this.cache.get(source)!;
+      this.cache.delete(source);
+      this.cache.set(source, tokens);
+
+      console.log('I have read it from cache for: ' + source);
+      return tokens;
+    }
+
+    console.log('here I am scanning: ' + source);
+
+    try {
+      this.source = source;
+      const tokens = this.preformScan();
+      this.cache.set(this.source, tokens);
+
+      if (this.cache.size > 3) {
+        const oldestKey = this.cache.keys().next().value;
+        this.cache.delete(oldestKey!);
+      }
+
+      return tokens;
+
+    } catch (err) {
+      console.error(err);
+      throw new Error(err instanceof Error ? err.message : String(err));
+    }
   }
 
-  public scan() {
+  public preformScan() {
     this.resetState();
     try {
       if (this.source.includes('<') || this.source.includes('>')) {
@@ -162,6 +190,7 @@ export class Scanner {
         throw new Error(this.errors.join(',\n'));
       }
       return this.tokens;
+
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : String(err));
     }

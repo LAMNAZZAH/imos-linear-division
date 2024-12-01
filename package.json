@@ -5,7 +5,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "repository": {
-    "url": "https://www.github.com/LAMNAZZAH/imos-linear-division"
+    "url": "https://github.com/LAMNAZZAH/imos-linear-division"
   },
   "scripts": {
     "test": "jest",

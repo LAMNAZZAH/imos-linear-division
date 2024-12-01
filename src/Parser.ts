@@ -32,14 +32,40 @@ type Node =
 //TODO: add handling of [] brackets tokens (CURRENTLY DOESN'T EXIST IN DB)
 
 export class Parser {
+  private cache = new Map<Token[], Node>();
   private tokens: Token[] = [];
   private current: number = 0;
 
-  constructor(tokens: Token[]) {
-    this.tokens = tokens;
+  parse(tokens: Token[]): Node {
+    if (this.cache.has(tokens)) {
+      const ast = this.cache.get(tokens)!;
+      this.cache.delete(tokens);
+      this.cache.set(tokens, ast);
+
+      console.log("I've read tokens from cache: ", tokens);
+      return ast;
+    }
+
+    try {
+      this.tokens = tokens;
+      const ast = this.performParse(tokens);
+      this.cache.set(tokens, ast);
+
+      if (this.cache.size > 3) {
+        const oldestKey = this.cache.keys().next().value;
+        this.cache.delete(oldestKey!);
+      }
+
+      console.log("no I did perform a parse for: ", tokens);
+
+      return ast;
+
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : String(err));
+    }
   }
 
-  public parse(): Node {
+  public performParse(tokens: Token[]): Node {
     this.resetCurrent();
     if (this.tokens.length === 0) {
       throw new Error('No tokens to parse.');
