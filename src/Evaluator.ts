@@ -71,7 +71,6 @@ import {
         if (this.isSection(node)) {
           const evaluatedValue = this.evaluate(node.nodes as Section, context);
           if (evaluatedValue instanceof EvaluationErrors) {
-            console.log(`Error in section ${JSON.stringify(node)}`);
             return new EvaluationErrors(
               `Error in section ${JSON.stringify(node)}`
             );

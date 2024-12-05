@@ -42,7 +42,6 @@ export class Parser {
       this.cache.delete(tokens);
       this.cache.set(tokens, ast);
 
-      console.log("I've read tokens from cache: ", tokens);
       return ast;
     }
 
@@ -56,7 +55,6 @@ export class Parser {
         this.cache.delete(oldestKey!);
       }
 
-      console.log("no I did perform a parse for: ", tokens);
 
       return ast;
 
@@ -269,7 +267,6 @@ export class Parser {
       if (this.check(TokenType.PAREN_OPEN)) {
         this.advance();
         const expr = this.expression();
-        console.log('expr', expr);
         if (!expr) {
           throw new Error('Expected expression inside parentheses.');
         }

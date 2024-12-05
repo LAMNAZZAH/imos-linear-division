@@ -14,7 +14,6 @@ export class Scanner {
 
   private reportError(message: string): void {
     this.errors.push(message);
-    console.error(`Error at position: ${this.current}: ${message}`);
   }
 
   private static readonly MATHEMATICAL_FUNCTIONS: { [key: string]: TokenType } =
@@ -49,11 +48,9 @@ export class Scanner {
       this.cache.delete(source);
       this.cache.set(source, tokens);
 
-      console.log('I have read it from cache for: ' + source);
       return tokens;
     }
 
-    console.log('here I am scanning: ' + source);
 
     try {
       this.source = source;
@@ -215,10 +212,6 @@ export class Scanner {
   }
 
   private addToken(type: TokenType, lexeme?: string): void {
-    console.log(
-      'lexeme: ' + lexeme ||
-        (type ? this.source.substring(this.start, this.current) : '')
-    );
     this.tokens.push({
       type: type,
       lexeme:
@@ -237,13 +230,11 @@ export class Scanner {
 
   private scanNumber(): void {
     while (this.isDigit(this.peek())) {
-      console.log('peek: ' + this.peek());
       this.advance();
     }
 
     // Handle decimals
     if (this.peek() === '.') {
-      console.log('peek dot: ' + this.peek());
       this.advance(); // Consume the '.'
 
       if (!this.isDigit(this.peek())) {
@@ -252,7 +243,6 @@ export class Scanner {
         );
       }
       while (this.isDigit(this.peek())) {
-        console.log('peek digit: ' + this.peek());
         this.advance();
       }
     }

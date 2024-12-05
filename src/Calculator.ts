@@ -18,7 +18,6 @@ export class Calculator {
     dividerThickness: number = 0
   ): number[] | EvaluationErrors {
     try {
-      console.log(`Evaluator Result: ${JSON.stringify(ast)}`);
       if (ast instanceof EvaluationErrors) {
         throw ast;
       }
@@ -100,7 +99,6 @@ export class Calculator {
         }
       });
 
-      console.log(`sections.sections: ${JSON.stringify(sections.sections)}`);
 
       // for section in sections get mm values
       let accumulatedMmValues = 0;
@@ -149,7 +147,6 @@ export class Calculator {
 
       let restAfterN = totalLength - accumulatedMmValues + dividerThickness;
 
-      console.log('sections.sections.length: ', sections.sections.length);
 
       let nTimes = 0;
 
@@ -266,7 +263,6 @@ export class Calculator {
 
       return sectionsResult;
     } catch (error) {
-      console.error('Error calculating sections:', error);
       return new EvaluationErrors('Error calculating sections');
     }
   }

@@ -68,8 +68,6 @@ export function evaluateFunction(
         spreadMm: context?.isInsideGroup === false,
       };
     case 'round':
-      console.log('tma: ', evaluatedArg.value);
-      console.log('ne3ma: ', context?.isInsideGroup);
       return {
         type: 'NumberLiteral',
         value: Math.round(evaluatedArg.value as number),

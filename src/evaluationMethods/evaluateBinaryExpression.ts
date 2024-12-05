@@ -32,9 +32,6 @@ export function evaluateBinaryExpression(
     ? (this.evaluate(expression.right as Node) as Node | EvaluationErrors)
     : expression.right;
 
-  console.log(`leftValue: ${JSON.stringify(leftValue)}`);
-  console.log(`rightValue: ${JSON.stringify(rightValue)}`);
-  console.log(`expression.operator: ${expression.operator}`);
 
   if (leftValue instanceof EvaluationErrors) return leftValue;
   if (rightValue instanceof EvaluationErrors) return rightValue;
@@ -51,7 +48,6 @@ export function evaluateBinaryExpression(
     return value.type === 'Repeated';
   };
 
-  console.log('contexto:', context);
 
   switch (expression.operator) {
     case '+': {
@@ -69,7 +65,6 @@ export function evaluateBinaryExpression(
             (rightValue as NumberLiteral).spreadMm,
         };
       } else if (bothAreNumbers && context?.isInsideGroup == true) {
-        console.log('adding upp');
         return {
           type: 'NumberLiteral',
           value:
@@ -172,7 +167,6 @@ export function evaluateBinaryExpression(
             (rightValue as NumberLiteral).spreadMm,
         };
       } else if (bothAreNumbers && context?.isInsideGroup == true) {
-        console.log('subtracting');
         return {
           type: 'NumberLiteral',
           value:
