@@ -52,6 +52,7 @@ export interface ASTNode {
   export interface Section extends ASTNode {
     type: 'Section';
     nodes: ASTNode;
+    isAbsolute?: boolean;
   }
   
   export interface Repeated extends ASTNode {
