@@ -100,20 +100,31 @@ and an optional dividerthickness
 const result = processLindiv("50mm+2:2:2{50mm}:3", 500, 20)
 
 ```
+
 Example of usage with variables
 
-```
+```typescript
+
 processLindiv("$var1 mm+$var2:$var3:$var3{$var1 mm}:$var4", 500, 20, { var1: 50, var2: 2, var3: 2, var4: 3 })
 // result == [127.14, 77.14, 50, 50, 115.71]
 
 ```
 
-Example of usage with variables
+Example of usage with Dimension Reference
+
+```typescript
+
+processLindiv("100mm:1:100mm", 333, 33, {}, {sizerefout1: DimRef.I, sizerefedg1: DimRef.I, sizerefmid: DimRef.I, sizerefedg2: DimRef.I, sizerefout2: DimRef.I})
+
+// result: [100, 67, 100]
+
+processLindiv("100mm:1:100mm", 333, 33, {}, {sizerefout1: DimRef.I, sizerefedg1: DimRef.I, sizerefmid: DimRef.I, sizerefedg2: DimRef.O, sizerefout2: DimRef.I})
+
+// [100, 100, 67]
 
 ```
-processLindiv("$var1 mm+$var2:$var3:$var3{$var1 mm}:$var4", 500, 20, { var1: 50, var2: 2, var3: 2, var4: 3 })
-// result == [127.14, 77.14, 50, 50, 115.71]
 
-```
+
+
 
 

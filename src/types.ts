@@ -7,6 +7,7 @@ export interface ASTNode {
     type: 'NumberLiteral';
     value: number;
     spreadMm?: boolean;
+    drAdjustmentValue?: number;
   }
   
   export interface Variable extends ASTNode {
@@ -25,6 +26,7 @@ export interface ASTNode {
     operator: string;
     right: ASTNode;
     inGroup?: boolean;
+    drAdjustmentValue?: number;
   }
   
   export interface UnaryExpression extends ASTNode {

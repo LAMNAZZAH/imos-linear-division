@@ -2,6 +2,7 @@
 /node_modules
 /__tests__
 /coverage
+/logs
 
 tsconfig.json
 tsup.config.ts

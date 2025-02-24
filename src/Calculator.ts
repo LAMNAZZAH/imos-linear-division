@@ -1,16 +1,24 @@
 import { EvaluationErrors } from "./types";
-import { Node } from "./Evaluator";
 import { traverseTree } from "./traverseTree";
+
+import { SectionExpender } from "./SectionExpander";
+
+import { logger } from "./utils/logger";
 
 import {
   BinaryExpression,
   NumberLiteral,
-  Repeated,
   Section,
   Sections,
-  SpecialVariable,
 } from "./types";
-import { DimensionReference } from "./DimensionReference";
+
+import { SectionSpreadMm } from "./SectionSpreadMm";
+import { SectionMmValues } from "./SectionMmValues";
+import { SectionNSpecialVariable } from "./SectionNSpecialVariable";
+import { SectionRatioValues } from "./SectionRatioValues";
+import { SectionRatiosDR } from "./SectionRatiosDR";
+import { SectionCalculation } from "./SectionCalculation";
+
 
 enum DimRef {
   I = "I",
@@ -19,8 +27,6 @@ enum DimRef {
 }
 
 type DimRefProps = {
-  startPanelThk: number;
-  endPanelThk: number;
   sizerefout1: DimRef;
   sizerefedg1: DimRef;
   sizerefmid: DimRef;
@@ -35,280 +41,132 @@ export class Calculator {
     dividerThickness: number = 0,
     dimRefProps?: DimRefProps
   ): number[] | EvaluationErrors {
+    const sectionExpender = new SectionExpender();
+    const sectionSpreadMm = new SectionSpreadMm();
+    const sectionMmValues = new SectionMmValues();
+    const sectionNSpecialVariable = new SectionNSpecialVariable();
+    const sectionRatioValues = new SectionRatioValues();
+    const sectionRatiosDR = new SectionRatiosDR();
+    const sectionCalculation = new SectionCalculation();
+
     try {
+      logger.log("\n\n Start Sections Calculation \n ------------------- [] ----------------------")
+      logger.log("[Sections] ", ast);
+      logger.log("------------------- [] ----------------------")
+      logger.log("[TotalLength] ", totalLength)
+      logger.log("[DividerThickness] ", dividerThickness)
+      logger.log("[DimRefProps] ", dimRefProps)
+
       if (ast instanceof EvaluationErrors) {
         throw ast;
       }
+
       if (ast.type !== "Sections" && ast.type !== "Section") {
         throw new EvaluationErrors(
           `Expected Sections or Section, got ${JSON.stringify(ast)}`
         );
       }
 
+      let sections: Sections = sectionExpender.expandRepeated(ast);
+      sectionSpreadMm.spreadMm(sections);
 
-      
-      let sections: Sections = { type: "Sections", sections: [] };
-
-      // spread Repeated in sections or push section
-      if (ast.type === "Sections") {
-        for (const section of ast.sections) {
-          if (
-            section.nodes.type === "Repeated" &&
-            (section.nodes as Repeated).times
-          ) {
-            for (
-              let i = 0;
-              i < ((section.nodes as Repeated)?.times ?? 0);
-              i++
-            ) {
-              if ((section.nodes as Repeated).toRepeat.type === "Section") {
-                // ADDING REPEATED COULD BE RATIO OR MM
-                sections.sections.push(
-                  (section.nodes as Repeated).toRepeat as Section
-                );
-              } else if (
-                (section.nodes as Repeated).toRepeat.type === "Sections"
-              ) {
-                for (const subSection of (
-                  (section.nodes as Repeated).toRepeat as Sections
-                ).sections) {
-                  sections.sections.push(subSection);
-                }
-              }
-            }
-          } else {
-            sections.sections.push(section);
-          }
-        }
-      } else if (ast.type === "Section") {
-        sections.sections.push(ast);
-      }
-
-
-      if (dimRefProps) {
-        let dimensionReference = new DimensionReference();
-        const accumulatedIncThk = dimensionReference.accumulateIncorporatedThicknesses(
-          sections,
-          dimRefProps.startPanelThk,
-          dimRefProps.endPanelThk,
-          dividerThickness,
-          dimRefProps.sizerefout1,
-          dimRefProps.sizerefedg1,
-          dimRefProps.sizerefmid,
-          dimRefProps.sizerefedg2,
-          dimRefProps.sizerefout2
-        );
-
-        //console.log("accumulated inc thk: ", accumulatedIncThk);
-      }
-      
-
-      // check if section contain spread mm => assign spread mm true
-      //! todo:
-      sections.sections.forEach((node) => {
-        let spreadMm = false;
-        traverseTree(node, (node: Node) => {
-          if (node.type === "NumberLiteral") {
-            if ((node as NumberLiteral)?.spreadMm === true) {
-              spreadMm = true;
-            }
-          } else if (node.type === "BinaryExpression") {
-            if (node.left.type === "NumberLiteral") {
-              if ((node.left as NumberLiteral)?.spreadMm === true) {
-                spreadMm = true;
-              }
-              if ((node.right as NumberLiteral)?.spreadMm === true) {
-                spreadMm = true;
-              }
-            }
-          }
-        });
-
-        if (spreadMm) {
-          traverseTree(node, (node: Node) => {
-            if (node.type === "NumberLiteral") {
-              (node as NumberLiteral).hasMillimeterSuffix = true;
-            } else if (node.type === "BinaryExpression") {
-              if (node.left.type === "NumberLiteral") {
-                (node.left as NumberLiteral).hasMillimeterSuffix = true;
-              }
-              if (node.right.type === "NumberLiteral") {
-                (node.right as NumberLiteral).hasMillimeterSuffix = true;
-              }
-            }
-          });
-        }
-      });
+      let accumulatedDRFromMmValues = 0;
 
       // for section in sections get mm values
       let accumulatedMmValues = 0;
 
-      const accumulateMmValues = (node: Node) => {
-        if (dividerThickness) {
-          if (node.type === "Section") {
-            accumulatedMmValues += dividerThickness;
+      logger.log("------------------- [] ----------------------")
+      logger.log("Step 01: Accumulate Mm Values")
+      logger.log("------------------- [] ----------------------")
+      sections.sections.forEach((section, index) => {
+        traverseTree(
+          section,
+          (node: NumberLiteral | BinaryExpression | Section) => {
+            const result = sectionMmValues.accumulateMmValues(
+              node,
+              index,
+              dividerThickness,
+              accumulatedMmValues,
+              dimRefProps,
+              sections
+            );
+            accumulatedMmValues = result.accumulatedMmValues;
+            sections = result.sections;
           }
-        }
-        if (node.type === "NumberLiteral") {
-          if ((node as NumberLiteral).hasMillimeterSuffix === true) {
-            accumulatedMmValues += (node as NumberLiteral).value;
-          }
-        } else if (node.type === "BinaryExpression") {
-          const binaryExpression = node as BinaryExpression;
-          if (
-            binaryExpression.left.type === "NumberLiteral" &&
-            binaryExpression.right.type === "NumberLiteral"
-          ) {
-            if (
-              (binaryExpression.left as NumberLiteral).hasMillimeterSuffix ===
-              true
-            ) {
-              accumulatedMmValues += (binaryExpression.left as NumberLiteral)
-                .value;
-            }
-            if (
-              (binaryExpression.right as NumberLiteral).hasMillimeterSuffix ===
-              true
-            ) {
-              accumulatedMmValues += (binaryExpression.right as NumberLiteral)
-                .value;
-            }
-          }
-        }
-      };
-      
-
-      sections.sections.forEach((section) =>
-        traverseTree(section, accumulateMmValues)
-      );
-      // end get accumulated mm values
+        );
+      });
 
       if (accumulatedMmValues > totalLength) {
         throw new EvaluationErrors("Total length exceeded");
       }
 
-      // add a divider thickness because removed dividers == sections.length before [ section | section | section ]
-      let restAfterN = totalLength - accumulatedMmValues + dividerThickness;
-
-      let nTimes = 0;
+      let rest = totalLength - accumulatedMmValues;
+      logger.log("[Rest] ", rest);
 
 
-      // this would be impacted by the change in dimension ref?!~
-      const processNSpecialVariables = (node: Node) => {
-        if (node.type === "BinaryExpression") {
-          const binaryExpression = node as BinaryExpression;
-          if (
-            binaryExpression.right.type === "NumberLiteral" &&
-            binaryExpression.left.type === "SpecialVariable" &&
-            (binaryExpression.left as SpecialVariable).name === "n" &&
-            binaryExpression.operator === "*"
-          ) {
-            nTimes = Math.floor(
-              restAfterN /
-                ((binaryExpression.right as NumberLiteral).value +
-                  dividerThickness)
-            );
-            const totalNDividersThickness = (nTimes - 1) * dividerThickness;
-            const totalNLength =
-              nTimes * (binaryExpression.right as NumberLiteral).value;
-            restAfterN += -totalNDividersThickness - totalNLength;
-          }
-        }
-      };
-
-      sections.sections.forEach((section) =>
-        traverseTree(section, processNSpecialVariables)
-      );
+      logger.log("------------------- [] ----------------------")
+      logger.log("Step 02: Process N Special Variable")
+      logger.log("------------------- [] ----------------------")
+      sections.sections.forEach((section, index) => {
+        traverseTree(section, (node: NumberLiteral | BinaryExpression) => {
+          const result = sectionNSpecialVariable.processNSpecialVariable(
+            node,
+            index,
+            dividerThickness,
+            rest,
+            dimRefProps,
+            sections
+          );
+          rest = result.rest;
+          sections = result.sections;
+        });
+      });
 
       let totalRatios = 0;
 
 
-      // ratio values
-      const accumulateRatioValues = (node: Node) => {
-        if (node.type === "BinaryExpression") {
-          if (
-            node.left.type === "NumberLiteral" &&
-            node.left.hasMillimeterSuffix === false
-          ) {
-            totalRatios += (node.left as NumberLiteral).value;
-          }
-          if (
-            node.right.type === "NumberLiteral" &&
-            node.right.hasMillimeterSuffix === false
-          ) {
-            totalRatios += (node.right as NumberLiteral).value;
-          }
-        }
-        if (node.type === "NumberLiteral") {
-          if (node.hasMillimeterSuffix === false) {
-            totalRatios += (node as NumberLiteral).value;
-          }
-        }
-      };
-
-      sections.sections.forEach((node) => {
-        traverseTree(node, accumulateRatioValues);
+      logger.log("------------------- [] ----------------------")
+      logger.log("Step 03: Accumulate Ratio Values")
+      logger.log("------------------- [] ----------------------")
+      sections.sections.forEach((section) => {
+        traverseTree(section, (section: NumberLiteral | BinaryExpression) => {
+          totalRatios = sectionRatioValues.accumulateRatioValues(section);
+        });
       });
-      // end ratio values
 
-      const ratioUnitValue = restAfterN / totalRatios;
-
-      const sectionsResult: number[] = [];
-
-      const calculateSection = (node: Node) => {
-        let ratioValue: number = 0;
-        let mmValue: number = 0;
-        if (node.type === "NumberLiteral") {
-          if (node.hasMillimeterSuffix === false) {
-            ratioValue += (node as NumberLiteral).value * ratioUnitValue;
+      logger.log("------------------- [] ----------------------")
+      logger.log("Step 04: adjust Ratio Dimension Reference")
+      logger.log("------------------- [] ----------------------")
+      sections.sections.forEach((node, index) => {
+        traverseTree(node, (node: NumberLiteral | BinaryExpression) => {
+          const result = sectionRatiosDR.adjustRatiosDR(node, index, totalRatios, dimRefProps, dividerThickness, sections);
+          if (result != undefined) {
+            sections = result;
           }
-          if (node.hasMillimeterSuffix === true) {
-            mmValue += (node as NumberLiteral).value;
-          }
-          sectionsResult.push(Number((ratioValue + mmValue).toFixed(2)));
-        } else if (node.type === "BinaryExpression") {
-          if (
-            node.left.type === "NumberLiteral" &&
-            node.right.type === "NumberLiteral"
-          ) {
-            if (node.left.hasMillimeterSuffix === false) {
-              ratioValue += (node.left as NumberLiteral).value * ratioUnitValue;
-            }
-            if (node.left.hasMillimeterSuffix === true) {
-              mmValue += (node.left as NumberLiteral).value;
-            }
-            if (node.right.hasMillimeterSuffix === false) {
-              ratioValue +=
-                (node.right as NumberLiteral).value * ratioUnitValue;
-            }
-            if (node.right.hasMillimeterSuffix === true) {
-              mmValue += (node.right as NumberLiteral).value;
-            }
-            sectionsResult.push(Number((ratioValue + mmValue).toFixed(2)));
-          }
-          if (
-            node.left.type === "SpecialVariable" &&
-            (node.left as SpecialVariable).name === "n" &&
-            node.right.type === "NumberLiteral"
-          ) {
-            mmValue += (node.right as NumberLiteral).value;
-            for (let i = 0; i < nTimes; i++) {
-              if (node.right.hasMillimeterSuffix === true) {
-                sectionsResult.push(Number(mmValue.toFixed(2)));
-              }
-            }
-          }
-        } else {
-        }
-      };
-
-      sections.sections.forEach((node) => {
-        traverseTree(node, calculateSection);
+        });
       });
+
+      const ratioUnitValue = totalRatios != 0 ? rest / totalRatios : 0;
+      logger.log("[RatioUnitValue] ", ratioUnitValue)
 
       
+      let sectionResult : number[] = [];
 
-      return sectionsResult;
+      logger.log("------------------- [] ----------------------")
+      logger.log("Step 05: calculate Sections")
+      logger.log("------------------- [] ----------------------")
+      sections.sections.forEach((node, index) => {
+        //console.log("-- lets go a section index to calculate: ", index);
+        traverseTree(node, (node: NumberLiteral | BinaryExpression) => {
+          sectionResult = sectionCalculation.calculateSection(node, index, accumulatedDRFromMmValues, totalRatios, ratioUnitValue)
+        });
+      });
+
+      logger.log("------------------- [] ----------------------")
+      logger.log("[Result] ", sectionResult)
+      logger.log("------------------- [] ----------------------")
+      
+      return sectionResult;
     } catch (error) {
       return new EvaluationErrors("Error calculating sections");
     }
